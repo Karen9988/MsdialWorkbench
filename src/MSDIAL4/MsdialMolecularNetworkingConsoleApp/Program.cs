@@ -8,18 +8,6 @@ using System.Threading.Tasks;
 namespace Riken.Metabolomics.MolecularNetworking {
     class Program {
         static int Main(string[] args) {
-            #region arg[] examples
-            //Networking test using local msp
-            args = new string[] {
-                "msms"
-                , "-i"
-                , @"E:\6_Projects\PAPERWORK_MSDIAL5\02_1000standards\RIKEN\POS_MSP\Curated_40CID_15CES\MergedMSP_40CID_15CES.msp"
-                , "-p"
-                , @"E:\6_Projects\PAPERWORK_MSDIAL5\02_1000standards\RIKEN\POS_MSP\Curated_40CID_15CES\param.txt"
-                , "-o"
-                , @"E:\6_Projects\PAPERWORK_MSDIAL5\02_1000standards\RIKEN\POS_MSP\Curated_40CID_15CES"
-            };
-            #endregion
             if (args.Length == 0) return argsError();
             if (args.Length < 7) return argsError();
 

@@ -54,6 +54,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="PresentationCore" />
+    <Reference Include="RawDataHandler-Vendor-UnSupported, Version=1.2.9082.378, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\RawDataHandler-Vendor-UnSupported.1.2.9082.378\lib\netstandard2.0\RawDataHandler-Vendor-UnSupported.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Windows" />
     <Reference Include="WindowsBase" />
@@ -106,6 +109,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

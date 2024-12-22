@@ -54,6 +54,9 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="RawDataHandler-Vendor-UnSupported, Version=1.2.9082.378, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\RawDataHandler-Vendor-UnSupported.1.2.9082.378\lib\netstandard2.0\RawDataHandler-Vendor-UnSupported.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -69,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KeggApiStandard\KeggApiStandard.csproj">

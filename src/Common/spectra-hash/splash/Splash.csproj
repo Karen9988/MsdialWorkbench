@@ -70,6 +70,9 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="Mono.Options"/>
+    <Compile Remove="Mono.Options" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="RawDataHandler-Vendor-UnSupported" Version="1.2.9082.378" />
   </ItemGroup>
 </Project>

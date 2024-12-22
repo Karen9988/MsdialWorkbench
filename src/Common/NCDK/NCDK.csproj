@@ -275,6 +275,7 @@
 
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics.Signed" Version="4.9.0" />
+    <PackageReference Include="RawDataHandler-Vendor-UnSupported" Version="1.2.9082.378" />
   </ItemGroup>
 
   <ItemGroup>

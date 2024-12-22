@@ -2,6 +2,7 @@
 using CompMs.Common.Components;
 using CompMs.Common.Parser;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,6 +21,7 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
         public double MaxEdgeNumPerNode { get; set; } = 5;
         public double MaxPrecursorDiff { get; set; } = 400;
         public double MaxPrecursorDiff_Percent { get; set; } = 100;
+        public bool Screening_With_MoleculerNetwork { get; set; } = false;
     }
 
     public sealed class MoleculerSpectrumNetworkingTest {
@@ -43,8 +45,28 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
             var inputfilename = Path.GetFileNameWithoutExtension(input);
             var output_node_file = Path.Combine(outputdir, inputfilename + "_" + timeStamp + "_node.txt");
             var output_edge_file = Path.Combine(outputdir, inputfilename + "_" + timeStamp + "_edge.txt");
+            var output_candidate_file = Path.Combine(outputdir, "candidates_" + timeStamp + ".csv");
 
-            var spectra = MspFileParser.MspFileReader(input);
+            List<MoleculeMsReference> spectra;
+            var input_extension = Path.GetExtension(input).ToUpper();
+            switch(input_extension)
+            {
+                case ".MSP":
+                    spectra = MspFileParser.MspFileReader(input);
+                    break;
+                case ".MSDIAL":
+                    string msg = "";
+                    spectra = MsDialResultParser.MsDialResultRecords(input, out msg);
+                    if (msg.Length > 0)
+                    {
+                        Console.WriteLine(msg);
+                        return;
+                    }
+                    break;
+                default:
+                    Console.WriteLine("open spectra file failed!");
+                    return;
+            }
 
             Console.WriteLine("Converting to normalized spectra");
             foreach (var record in spectra) {
@@ -91,6 +113,9 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
             }
 
             var nodeDict = new Dictionary<string, MoleculeMsReference>();
+            var nodeClustering = new Dictionary<string, int>();
+            var clustering = new List<Dictionary<string, MoleculeMsReference>>();
+            var removeIdx = new List<int>();
             using (var sw = new StreamWriter(output_edge_file)) {
                 sw.WriteLine("Source\tTarget\tSimilarity\tMatchNumber");
                 foreach (var item in cNode2Links) {
@@ -103,9 +128,39 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
 
                         if (!nodeDict.ContainsKey(source_node_id)) {
                             nodeDict[source_node_id] = spectra[item.Key];
+                            if (nodeClustering.ContainsKey(target_node_id))
+                            {
+                                var targetClusteringIdx = nodeClustering[target_node_id];
+                                nodeClustering[source_node_id] = targetClusteringIdx;
+                                clustering[targetClusteringIdx][source_node_id] = spectra[item.Key];
+                            }
+                            else
+                            {
+                                var newDict = new Dictionary<string, MoleculeMsReference>();
+                                newDict[source_node_id] = spectra[item.Key];
+                                clustering.Add(newDict);
+                                nodeClustering[source_node_id] = clustering.Count - 1;
+                            }
                         }
                         if (!nodeDict.ContainsKey(target_node_id)) {
                             nodeDict[target_node_id] = link.Node;
+                            var sourceClusterIdx = nodeClustering[source_node_id];
+                            nodeClustering[target_node_id] = sourceClusterIdx;
+                            clustering[sourceClusterIdx][target_node_id] = link.Node;
+                        }
+                        if (nodeClustering[target_node_id] != nodeClustering[source_node_id])
+                        {
+                            var targetIdx = nodeClustering[target_node_id];
+                            var sourceIdx = nodeClustering[source_node_id];
+                            var largerIdx = Math.Max(targetIdx, sourceIdx);
+                            var lessIdx = Math.Min(targetIdx, sourceIdx);
+                            foreach(var pair in clustering[largerIdx])
+                            {
+                                clustering[lessIdx][pair.Key] = pair.Value;
+                                nodeClustering[pair.Key] = lessIdx;
+                            }
+                            clustering[largerIdx].Clear();
+                            removeIdx.Add(largerIdx);
                         }
                     }
                 }
@@ -124,8 +179,34 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
                     sw.WriteLine(String.Join("\t", lines));
                 }
             }
-        }
 
+            if (param.Screening_With_MoleculerNetwork && clustering.Count > 0) {
+                Dictionary<string, MoleculeMsReference> maxSubCluster = null;
+                int maxClusterSize = 0;
+                foreach (var subCluster in clustering)
+                {
+                    if (subCluster.Count > maxClusterSize)
+                    {
+                        maxClusterSize = subCluster.Count;
+                        maxSubCluster = subCluster;
+                    }
+                }
+                using (var sw = new StreamWriter(output_candidate_file))
+                {
+                    sw.WriteLine("ID,Rt,m/z");
+                    foreach (var item in maxSubCluster)
+                    {
+                        var record = item.Value;
+                        var lines = new List<string>() {
+                            record.ScanID.ToString(), record.ChromXs.Value.ToString(), record.PrecursorMz.ToString()
+                        };
+                        sw.WriteLine(String.Join(",", lines));
+                    }
+                }
+
+            }
+
+        }
         public static MoleculerNetworkParameter ReadParameters(string file) {
             var param = new MoleculerNetworkParameter();
             using (var sr = new StreamReader(file)) {
@@ -156,7 +237,14 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
                                 if (double.TryParse(value, out double maxprecursordiff_percent))
                                     param.MaxPrecursorDiff_Percent = maxprecursordiff_percent;
                                 break;
-                            default: break;
+                            case "screening_with_moleculernetwork":
+                                if (bool.TryParse(value, out bool screening_with_mn))
+                                    param.Screening_With_MoleculerNetwork = screening_with_mn;
+                                Console.WriteLine(string.Format("screening_with_moleculernetwork:{0}", param.Screening_With_MoleculerNetwork));
+                                break;
+                            default:
+                                Console.WriteLine(string.Format("unknown parameter: {0}", key));
+                                break;
                         }
                     }
                 }
