@@ -46,6 +46,7 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
             var output_node_file = Path.Combine(outputdir, inputfilename + "_" + timeStamp + "_node.txt");
             var output_edge_file = Path.Combine(outputdir, inputfilename + "_" + timeStamp + "_edge.txt");
             var output_candidate_file = Path.Combine(outputdir, "candidates_" + timeStamp + ".csv");
+            var output_files = Path.Combine(outputdir, "networking_output_files.txt");
 
             List<MoleculeMsReference> spectra;
             var input_extension = Path.GetExtension(input).ToUpper();
@@ -80,8 +81,8 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
             for (int i = 0; i < spectra.Count; i++) {
                 for (int j = i + 1; j < spectra.Count; j++) {
                     counter++;
-                    Console.Write("{0} / {1}", counter, max);
-                    Console.SetCursorPosition(0, Console.CursorTop);
+                    //Console.WriteLine("{0} / {1}", counter, max);
+                    //Console.SetCursorPosition(0, Console.CursorTop);
 
                     var prop1 = spectra[i];
                     var prop2 = spectra[j];
@@ -100,7 +101,9 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
                         node2links[i] = new List<LinkNode>() { new LinkNode() { Score = scoreitem, Node = spectra[j] } };
                     }
                 }
+                //Console.WriteLine("finish i {0}, total {1}", i, spectra.Count);
             }
+            Console.WriteLine("Creating molecular networking done");
 
             var cNode2Links = new Dictionary<int, List<LinkNode>>();
             foreach (var item in node2links) {
@@ -111,12 +114,15 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
                     cNode2Links[item.Key].Add(nitem[i]);
                 }
             }
+            Console.WriteLine("cnode2links done");
 
             var nodeDict = new Dictionary<string, MoleculeMsReference>();
             var nodeClustering = new Dictionary<string, int>();
             var clustering = new List<Dictionary<string, MoleculeMsReference>>();
             var removeIdx = new List<int>();
+            var sw_output_files = new StreamWriter(output_files);
             using (var sw = new StreamWriter(output_edge_file)) {
+                sw_output_files.WriteLine("edge_file:" + output_edge_file);
                 sw.WriteLine("Source\tTarget\tSimilarity\tMatchNumber");
                 foreach (var item in cNode2Links) {
                     foreach (var link in item.Value) {
@@ -165,8 +171,9 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
                     }
                 }
             }
-
+            Console.WriteLine("done edge file");
             using (var sw = new StreamWriter(output_node_file)) {
+                sw_output_files.WriteLine("node_file:" + output_node_file);
                 sw.WriteLine("ID\tMz\tRt\tName\tAdduct");
                 foreach (var item in nodeDict) {
                     var key = item.Key;
@@ -179,7 +186,7 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
                     sw.WriteLine(String.Join("\t", lines));
                 }
             }
-
+            Console.WriteLine("done node file");
             if (param.Screening_With_MoleculerNetwork && clustering.Count > 0) {
                 Dictionary<string, MoleculeMsReference> maxSubCluster = null;
                 int maxClusterSize = 0;
@@ -193,19 +200,26 @@ namespace CompMs.App.MsdialConsole.MolecularNetwork {
                 }
                 using (var sw = new StreamWriter(output_candidate_file))
                 {
-                    sw.WriteLine("ID,Rt,m/z");
+                    sw_output_files.WriteLine("candidate_file:" + output_candidate_file);
+                    sw.WriteLine("ID,Rt,m/z,ms2");
                     foreach (var item in maxSubCluster)
                     {
                         var record = item.Value;
+                        var m2Items = new List<string>();
+                        foreach (var item2 in record.Spectrum) {
+                            m2Items.Add(String.Join(":", new List<String>{ item2.Mass.ToString(), item2.Intensity.ToString()}));
+                        }
                         var lines = new List<string>() {
-                            record.ScanID.ToString(), record.ChromXs.Value.ToString(), record.PrecursorMz.ToString()
+                            record.ScanID.ToString(), record.ChromXs.Value.ToString(), record.PrecursorMz.ToString(),
+                            String.Join(" ", m2Items)
                         };
                         sw.WriteLine(String.Join(",", lines));
                     }
                 }
-
+                Console.WriteLine("candidate_file," + output_candidate_file);
+                Console.WriteLine("done candidate_file");
             }
-
+            sw_output_files.Close();
         }
         public static MoleculerNetworkParameter ReadParameters(string file) {
             var param = new MoleculerNetworkParameter();

@@ -17,7 +17,8 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Export
         public static void ExportMs2DecResult(AnalysisFileBean file, string outputFolder, ObservableCollection<RawSpectrum> accumulatedSpectra,
             ObservableCollection<RawSpectrum> spectrumCollection, List<MspFormatCompoundInformationBean> mspDB, List<PostIdentificatioinReferenceBean> txtDB,
             AnalysisParametersBean param, ProjectPropertyBean projectProperty) {
-            var outputfile = Path.Combine(outputFolder, file.AnalysisFilePropertyBean.AnalysisFileName + ".msdial");
+            var outputFileName = file.AnalysisFilePropertyBean.AnalysisFileName + (projectProperty.IonMode == IonMode.Negative ? "_neg" : "_pos");
+            var outputfile = Path.Combine(outputFolder, outputFileName + ".msdial");
             Console.WriteLine("Exporting peak list data: {0}", outputfile);
 
             using (StreamWriter sw = new StreamWriter(outputfile, false, Encoding.ASCII)) {
@@ -48,6 +49,8 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Export
                     }
                 }
             }
+
+            Console.WriteLine("msdial_output_file_path," + outputfile);
         }
 
         public static void ExportAlignmentResult(string outputFile, AlignmentFileBean alignmentResultFile, AlignmentResultBean alignmentResultBean,

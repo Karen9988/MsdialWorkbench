@@ -22,7 +22,7 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Process
 {
     public class LcmsDdaProcess
     {
-        public int Run(string inputFolder, string outputFolder, string methodFile, bool isProjectStore, float targetMz)
+        public int Run(string inputFolder, string outputFolder, string methodFile, bool isProjectStore, float targetMz, int positiveMode)
         {
             Console.WriteLine("Loading library files...");
 
@@ -38,6 +38,9 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Process
             var lcmsParam = ConfigParser.ReadForLcmsParameter(methodFile);
             var projectProp = ConfigParser.ReadForLcmsProjectProperty(methodFile, inputFolder);
             ConfigParser.SetLCMSAlignmentReferenceFileByFilename(methodFile, analysisFiles, lcmsParam);
+
+            if (positiveMode == 0) { projectProp.IonMode = IonMode.Negative; }
+            else { projectProp.IonMode = IonMode.Positive;  }
 
             var alignmentFile = AlignmentResultParser.GetAlignmentFileBean(inputFolder);
 
@@ -250,8 +253,10 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Process
                 Console.WriteLine("Finalization finished");
 
                 //export
-                var outputFile = System.IO.Path.Combine(outputfolder, alignmentFile.FileName + ".msdial");
+                var outputFileName = alignmentFile.FileName + (projectProp.IonMode == IonMode.Negative ? "_neg" : "_pos");
+                var outputFile = System.IO.Path.Combine(outputfolder, outputFileName  + ".msdial");
                 ResultExportForLC.ExportAlignmentResult(outputFile, alignmentFile, alignmentResult, mspDB, txtDB, analysisFiles, lcmsParam);
+                Console.WriteLine("msdial_output_file_path:" + outputFile);
             }
 
             if (isProjectStore)

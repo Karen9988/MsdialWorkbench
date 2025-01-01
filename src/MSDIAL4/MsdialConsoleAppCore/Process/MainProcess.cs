@@ -17,6 +17,7 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Process {
             var isProjectStore = false;
             var isAif = false;
             var targetMz = -1.0f;
+            var posMode = 1;
 
             for (int i = 1; i < args.Length; i++) {
                 if (args[i] == "-i" && i + 1 < args.Length) inputFolder = args[i + 1];
@@ -29,6 +30,13 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Process {
                         return argsError2();
                     }
                 }
+                else if (args[i] == "-ionMode" && i + 1 < args.Length)
+                {
+                    if (args[i + 1].ToLower() == "negative")
+                    {
+                        posMode = 0;
+                    }
+                }
             }
             if (inputFolder == string.Empty || methodFile == string.Empty || outputFolder == string.Empty) return argsError();
 
@@ -37,7 +45,7 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Process {
                 case "gcms":
                     return gcmsProcess(inputFolder, outputFolder, methodFile, isProjectStore);
                 case "lcmsdda":
-                    return lcmsDdaProcess(inputFolder, outputFolder, methodFile, isProjectStore, targetMz);
+                    return lcmsDdaProcess(inputFolder, outputFolder, methodFile, isProjectStore, targetMz, posMode);
                 case "lcmsdia":
                     return lcmsDiaProcess(inputFolder, outputFolder, methodFile, isProjectStore, targetMz, isAif);
                 case "lcimmsdda":
@@ -79,11 +87,11 @@ namespace Riken.Metabolomics.MsdialConsoleApp.Process {
 			return code;
 		}
 
-		private static int lcmsDdaProcess(string inputFolder, string outputFolder, string methodFile, bool isProjectStore, float targetMz = -1f)
+		private static int lcmsDdaProcess(string inputFolder, string outputFolder, string methodFile, bool isProjectStore, float targetMz = -1f, int positiveMode = 1)
         {
 			var code = 0;
             try {
-                code = new LcmsDdaProcess().Run(inputFolder, outputFolder, methodFile, isProjectStore, targetMz);
+                code = new LcmsDdaProcess().Run(inputFolder, outputFolder, methodFile, isProjectStore, targetMz, positiveMode);
             } catch (Exception ex) {
                 code = ex.GetHashCode();
                 var msg = String.Format("{0} -- {1} -- {2}", ex.InnerException, ex.Message, ex.StackTrace);
